@@ -1,0 +1,15 @@
+/* CSS for the multi genome alignment module */
+
+div#mga_plot_key
+{
+    margin-top:    8px;
+    margin-bottom: 4px;
+}
+
+span.multiqc_mga_key_element
+{
+    border:       1px solid black;
+    margin-left:  4px;
+    margin-right: 4px;
+    background-color: #fff000;
+}
