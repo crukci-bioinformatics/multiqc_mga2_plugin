@@ -441,11 +441,11 @@ class MultiqcModule(BaseMultiqcModule):
                 table_data[reference_genome_id] = {
                     'species': assignment.species,
                     'aligned_count': assignment.aligned,
-                    'aligned_perc': assignment.aligned_pc / 100.0,
-                    'aligned_error': assignment.error_rate / 100.0,
+                    'aligned_perc': assignment.aligned_frac,
+                    'aligned_error': assignment.error_rate,
                     'assigned_count': assignment.assigned,
-                    'assigned_perc': assignment.assigned_pc / 100.0,
-                    'assigned_error': assignment.assigned_error_rate / 100.0
+                    'assigned_perc': assignment.assigned_frac,
+                    'assigned_error': assignment.assigned_error_rate
                 }
 
         # Sort into decreasing order of assigned count.
@@ -463,13 +463,13 @@ class MultiqcModule(BaseMultiqcModule):
         table_data['Unmapped'] = {
             'species': '',
             'aligned_count': summary.unmapped,
-            'aligned_perc': summary.unmapped_pc / 100.0
+            'aligned_perc': summary.unmapped_frac
         }
 
         table_data['Adapter'] = {
             'species': '',
             'aligned_count': summary.adapter,
-            'aligned_perc': summary.adapter_pc / 100.0
+            'aligned_perc': summary.adapter_frac
         }
 
         return table_data
@@ -572,11 +572,9 @@ class MultiqcModule(BaseMultiqcModule):
         if assignment.expected or assignment.control:
             return True
 
-        aligned_error_rate = assignment.error_rate
-        aligned_fraction = assignment.aligned_pc / 100.0
-        assigned_fraction = assignment.assigned_pc / 100.0
-
-        return assigned_fraction >= assigned_fraction_threshold or aligned_fraction >= aligned_fraction_threshold and aligned_error_rate < error_rate_threshold
+        return assignment.assigned_frac >= assigned_fraction_threshold or \
+               assignment.aligned_frac >= aligned_fraction_threshold and \
+               assignment.error_rate < error_rate_threshold
 
 
     def _strip_from_lines(self, str):
