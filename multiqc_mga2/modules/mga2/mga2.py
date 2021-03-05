@@ -231,8 +231,20 @@ class MultiqcModule(BaseMultiqcModule):
                         'color': colour.applyAlpha(alpha).toHtml()
                     }
 
-            # Sort into decreasing order of assigned count.
-            #dataset_bar_data = OrderedDict(sorted(dataset_bar_data.items(), key = lambda x: -x[1]))
+            # See hpw many genomes were not accepted, and if there are any add a section for "other"
+            number_of_others, other_aligned_count, other_assigned_count = self._count_others(mga_dataset)
+            
+            if number_of_others > 0:
+                log.debug("{} others with {} assigned reads".format(number_of_others, other_assigned_count))
+                
+                category_id = f"{dataset_id}.other"
+                
+                dataset_bar_data[category_id] = int(other_assigned_count * sampled_to_sequenced)
+
+                dataset_categories[category_id] = {
+                    'name': f"{number_of_others} others",
+                    'color': bar_colours.contaminant.applyAlpha(min_alpha).toHtml()
+                }
 
             bar_data[dataset_id] = dataset_bar_data
 
@@ -411,18 +423,9 @@ class MultiqcModule(BaseMultiqcModule):
         dataset_id = mga_dataset.id
         summary = mga_dataset.summary
 
-        number_of_others = 0
-        other_aligned_count = 0
-        other_assigned_count = 0
+        number_of_others, other_aligned_count, other_assigned_count = self._count_others(mga_dataset)
+        
         table_data = dict()
-
-        # Count how many genomes are to go in the "other" category, and count
-        # their alignments and assignments.
-        for assignment in mga_dataset.assignments.values():
-            if not self._accept_genome(assignment):
-                number_of_others = number_of_others + 1
-                other_aligned_count = other_aligned_count + assignment.aligned
-                other_assigned_count = other_assigned_count + assignment.assigned
 
         for reference_genome_id, assignment in mga_dataset.assignments.items():
             if number_of_others < 2 or self._accept_genome(assignment):
@@ -546,6 +549,33 @@ class MultiqcModule(BaseMultiqcModule):
             'no_beeswarm': True,
             'sortRows': False
         }
+
+
+    def _count_others(self, mga_dataset: MGADataset) -> tuple:
+        '''
+        Count how many genomes are to go into an "other" category, and count
+        their alignments and assignments.
+        
+        The "other" classification is those genomes that don't fulfil the acceptance
+        criteria as defined by "_accept_genome".
+        
+        :param MGADataset mga_dataset: The MGA dataset being considered.
+        
+        :return A tuple of the number of "other" genomes, and the total aligned
+        and assigned counts for those genomes.
+        :rtype tuple
+        '''
+        number_of_others = 0
+        other_aligned_count = 0
+        other_assigned_count = 0
+
+        for assignment in mga_dataset.assignments.values():
+            if not self._accept_genome(assignment):
+                number_of_others = number_of_others + 1
+                other_aligned_count = other_aligned_count + assignment.aligned
+                other_assigned_count = other_assigned_count + assignment.assigned
+        
+        return number_of_others, other_aligned_count, other_assigned_count
 
 
     def _accept_genome(self, assignment: MGAAssignment) -> bool:
