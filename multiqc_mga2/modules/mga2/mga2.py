@@ -40,7 +40,7 @@ assigned_fraction_threshold = 0.01
 aligned_fraction_threshold = 0.01
 error_rate_threshold = 0.0125
 adapter_threshold_multiplier = 0.005
-    
+
 
 # Based on https://github.com/MultiQC/example-plugin
 
@@ -63,12 +63,15 @@ class MultiqcModule(BaseMultiqcModule):
                    written by Matthew Eldridge at the Cancer Research UK Cambridge Institute."""
         )
 
-        # TODO - work out if we're part of a sequencing run.
-
         # Add to self.css to be included in template
         self.css = { 'assets/css/multiqc_mga2.css' : os.path.join(os.path.dirname(__file__), 'assets', 'css', 'multiqc_mga2.css') }
 
         mga_data = self.load_mga_files()
+
+        title = config.kwargs.get("mga2_title")
+        if title is not None: mga_data.title = title
+
+        mga_data.from_sequencing = config.kwargs.get('mga2_sequencing_run', False)
 
         self.create_mga_reports(mga_data)
 
@@ -100,7 +103,7 @@ class MultiqcModule(BaseMultiqcModule):
     def _read_mga2_csv_file(self, mga_data: MGAData, mgafile: dict):
         """
         Read a MGA2 alignment summary file.
-        
+
         The file given as "mgafile" is the alignment summary file. We expect to find a file
         for the overall MGA summary next to it, such if the original is prefix.mga_alignment_summary.csv
         the summary file is prefix.mga_summary.csv
@@ -153,11 +156,11 @@ class MultiqcModule(BaseMultiqcModule):
         )
 
         # The summary table (one per dataset).
-        
+
         for dataset_id, mga_dataset in mga_data.datasets.items():
 
             self.add_section(
-                name = f'Lane {dataset_id} Statistics' if mga_data.from_sequencing else f'Dataset "{mga_summary}" Statistics',
+                name = f'Lane {dataset_id} Statistics' if mga_data.from_sequencing else f'Dataset "{dataset_id}" Statistics',
                 anchor = f"mga_stats_{dataset_id}",
                 plot = table.plot(self._main_table_data(mga_dataset), self._main_table_headers(), self._main_table_config(dataset_id)),
                 description = f"""
@@ -233,12 +236,12 @@ class MultiqcModule(BaseMultiqcModule):
 
             # See hpw many genomes were not accepted, and if there are any add a section for "other"
             number_of_others, other_aligned_count, other_assigned_count = self._count_others(mga_dataset)
-            
+
             if number_of_others > 0:
                 log.debug("{} others with {} assigned reads".format(number_of_others, other_assigned_count))
-                
+
                 category_id = f"{dataset_id}.other"
-                
+
                 dataset_bar_data[category_id] = int(other_assigned_count * sampled_to_sequenced)
 
                 dataset_categories[category_id] = {
@@ -292,8 +295,8 @@ class MultiqcModule(BaseMultiqcModule):
         :rtype dict
         '''
         return {
-            'id': "mga_plot_{}".format(mga_data.run_id.replace(' ', '_')),
-            'title': f"Multi Genome Alignment: {mga_data.run_id}",
+            'id': "mga_plot_{}".format(mga_data.title.replace(' ', '_')),
+            'title': f"Multi Genome Alignment: {mga_data.title}",
             'cpswitch_counts_label': 'Number of reads',
             'xlab': "Lane" if mga_data.from_sequencing else "Data set",
             'ylab': "Number of reads",
@@ -424,7 +427,7 @@ class MultiqcModule(BaseMultiqcModule):
         summary = mga_dataset.summary
 
         number_of_others, other_aligned_count, other_assigned_count = self._count_others(mga_dataset)
-        
+
         table_data = dict()
 
         for reference_genome_id, assignment in mga_dataset.assignments.items():
@@ -555,12 +558,12 @@ class MultiqcModule(BaseMultiqcModule):
         '''
         Count how many genomes are to go into an "other" category, and count
         their alignments and assignments.
-        
+
         The "other" classification is those genomes that don't fulfil the acceptance
         criteria as defined by "_accept_genome".
-        
+
         :param MGADataset mga_dataset: The MGA dataset being considered.
-        
+
         :return A tuple of the number of "other" genomes, and the total aligned
         and assigned counts for those genomes.
         :rtype tuple
@@ -574,7 +577,7 @@ class MultiqcModule(BaseMultiqcModule):
                 number_of_others = number_of_others + 1
                 other_aligned_count = other_aligned_count + assignment.aligned
                 other_assigned_count = other_assigned_count + assignment.assigned
-        
+
         return number_of_others, other_aligned_count, other_assigned_count
 
 

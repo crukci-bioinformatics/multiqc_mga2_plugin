@@ -7,7 +7,7 @@ from distutils.util import strtobool
 def _trim_to_none(str: str) -> str:
     '''
     Trim a string to None.
-    
+
     :param str str: The string to trim.
     :return The trimmed string, or None if the string contained nothing or only whitespace.
     :rtype str
@@ -63,7 +63,7 @@ def _to_frac(str):
 class MGAData(object):
     '''
     The top level object for MGA data.
-    
+
     Contains a dictionary of MGADataset objects
     (keyed by dataset id), a maximum sequence count (the greatest number of reads
     in any data set), a flag indicating whether this is from a sequencing process
@@ -74,14 +74,14 @@ class MGAData(object):
     def __init__(self):
         self.datasets = dict()
         self.max_sequence_count = 0
-        self.from_sequencing = True
-        self.run_id = "210121_A00489_0753_BHYTFKDRXX"
+        self.from_sequencing = False
+        self.title = "Multi Genome Alignment Analysis"
 
     def add_assignment_from_csv(self, assignment):
         '''
         Turn a dictionary of row values from the CSV file into a MGADataset
         object and add it to our "datasets" dictionary.
-        
+
         :param dict assignment: An assignment information row from the MGA alignment summary file.
         '''
         dataset_id = assignment['id']
@@ -92,12 +92,12 @@ class MGAData(object):
             self.datasets[dataset_id] = dataset
 
         dataset.add_assignment_from_csv(assignment)
-    
+
     def set_summary_from_csv(self, summary):
         '''
         Turn a dictionary of row values from the CSV file into an MGADatasetSummary
         object and set it as the dataset's summary.
-        
+
         :param dict summary: A summary information row from the MGA summary file.
         '''
         dataset_id = summary['id']
@@ -108,7 +108,7 @@ class MGAData(object):
         '''
         Calculate the maximum number of reads from each of the data sets in this
         object.
-        
+
         :return The maximum number of reads in any of the data sets, subsequently
         available through the "max_sequence_count" field.
         :rtype Integer
@@ -122,7 +122,7 @@ class MGAData(object):
 class MGADataset(object):
     '''
     The dataset level object for MGA.
-    
+
     This is the information for a specific data set. It contains a dictionary of
     MGAAssignment objects (keyed by genome), an MGAAssignment object for the unmapped
     counts, and a MGADatasetSummary object for the summary information for this dataset.
@@ -137,7 +137,7 @@ class MGADataset(object):
         '''
         Turn a dictionary of row values from the CSV file into a MGAAssignment
         object and add it to our "assignments" dictionary.
-        
+
         :param dict assignment: An assignment information row from the MGA alignment summary file.
         '''
         genome = assignment['genome']
@@ -145,12 +145,12 @@ class MGADataset(object):
             self.unmapped = MGAAssignment(assignment)
         else:
             self.assignments[genome] = MGAAssignment(assignment)
-            
+
     def set_summary_from_csv(self, summary):
         '''
         Turn a dictionary of row values from the CSV file into an MGADatasetSummary
         object and set it as our summary.
-        
+
         :param dict summary: A summary information row from the MGA summary file.
         '''
         self.summary = MGADatasetSummary(summary)
@@ -178,7 +178,7 @@ class MGAAssignment(object):
     def _sort_order(self, other):
         '''
         Helper method for sorting MGAAssignment objects for the MGA plot.
-        
+
         The order is expected before unexpected genomes, then real genomes before controls,
         then sort by descending number of assignment counts.
 
@@ -212,7 +212,7 @@ class MGAAssignment(object):
 class MGADatasetSummary(object):
     '''
     Structure for the information from a dataset summary.
-    
+
     Percentages are turned into decimals.
     '''
     def __init__(self, summary):

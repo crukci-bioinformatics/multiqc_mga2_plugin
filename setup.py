@@ -29,6 +29,10 @@ setup(
         'multiqc.modules.v1': [
             'mga2 = multiqc_mga2.modules.mga2:MultiqcModule',
         ],
+        'multiqc.cli_options.v1': [
+            'mga2_sequencing_run = multiqc_mga2.cli:mga2_sequencing_run',
+            'mga2_title = multiqc_mga2.cli:mga2_title'
+        ],
         'multiqc.hooks.v1': [
             'execution_start = multiqc_mga2.custom_code:mga2_plugin_execution_start'
         ]
