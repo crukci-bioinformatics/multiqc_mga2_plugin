@@ -76,10 +76,9 @@ class MultiqcModule(BaseMultiqcModule):
         """
         Find and load the content of MGA2 mga_alignment_summary.csv files.
 
-        :return A dictionary of MGA dataset ids to further dictionaries of summary
-        dictionaries (the rows from the files) keyed by genome ids. Or
-        dataset id -> genome id -> stats for that genome in the dataset.
-        :rtype dict
+        :return A MGAData structure populated with the information from the alignment
+        summary file and the MGA summary file..
+        :rtype MGAData
         """
 
         mga_data = MGAData()
@@ -101,7 +100,7 @@ class MultiqcModule(BaseMultiqcModule):
         """
         Read a MGA2 alignment summary file.
 
-        :param dict mga_data: A dictionary into which found content can be added, keyed by dataset id.
+        :param MGAData mga_data: The MGAData structure to read into.
         :param dict mgafile: The CSV file to load.
         """
 
@@ -119,24 +118,13 @@ class MultiqcModule(BaseMultiqcModule):
             log.debug(f"Found file {mgafile_path}")
             reader = csv.DictReader(fh, dialect = 'unix')
             for assignment in reader:
-                dataset_id = assignment['id']
-                dataset = mga_data.datasets.get(dataset_id)
-                if dataset is None:
-                    dataset = MGADataset(dataset_id)
-                    mga_data.datasets[dataset_id] = dataset
-
-                genome = assignment['genome']
-                if genome == 'unmapped':
-                    dataset.unmapped = MGAAssignment(assignment)
-                else:
-                    dataset.assignments[genome] = MGAAssignment(assignment)
+                mga_data.add_assignment_from_csv(assignment)
 
         with open(summaryfile_path, newline='') as fh:
             log.debug(f"Found file {summaryfile_path}")
             reader = csv.DictReader(fh, dialect = 'unix')
             for summary in reader:
-                dataset_id = summary['id']
-                mga_data.datasets[dataset_id].summary = MGADatasetSummary(summary)
+                mga_data.set_summary_from_csv(summary)
 
 
     def create_mga_reports(self, mga_data):

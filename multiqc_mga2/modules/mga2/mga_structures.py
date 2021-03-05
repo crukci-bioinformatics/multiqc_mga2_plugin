@@ -33,6 +33,21 @@ class MGAData(object):
         self.from_sequencing = True
         self.run_id = "210121_A00489_0753_BHYTFKDRXX"
 
+    def add_assignment_from_csv(self, assignment):
+        dataset_id = assignment['id']
+        dataset = self.datasets.get(dataset_id)
+
+        if dataset is None:
+            dataset = MGADataset(dataset_id)
+            self.datasets[dataset_id] = dataset
+
+        dataset.add_assignment_from_csv(assignment)
+    
+    def set_summary_from_csv(self, summary):
+        dataset_id = summary['id']
+        dataset = self.datasets[dataset_id]
+        dataset.set_summary_from_csv(summary)
+
     def calculate_max_sequences(self):
         self.max_sequence_count = 0
         for dataset in self.datasets.values():
@@ -46,6 +61,16 @@ class MGADataset(object):
         self.assignments = dict()
         self.unmapped = None
         self.summary = None
+
+    def add_assignment_from_csv(self, assignment):
+        genome = assignment['genome']
+        if genome == 'unmapped':
+            self.unmapped = MGAAssignment(assignment)
+        else:
+            self.assignments[genome] = MGAAssignment(assignment)
+            
+    def set_summary_from_csv(self, summary):
+        self.summary = MGADatasetSummary(summary)
 
 
 class MGAAssignment(object):
