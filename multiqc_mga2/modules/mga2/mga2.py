@@ -187,8 +187,6 @@ class MultiqcModule(BaseMultiqcModule):
 
             sequence_count = dataset_summary.sequences
             sampled_count = dataset_summary.sampled
-            adapter_count = dataset_summary.adapter
-            unmapped_count = dataset_summary.unmapped
 
             sampled_to_sequenced = float(sequence_count) / float(sampled_count)
 
@@ -197,13 +195,6 @@ class MultiqcModule(BaseMultiqcModule):
 
             for reference_genome_id, assignment in mga_dataset.assignments.items():
                 if self._accept_genome(assignment):
-                    aligned_count = assignment.aligned
-                    aligned_error = assignment.error_rate
-                    assigned_count = assignment.assigned
-                    assigned_error = assignment.assigned_error_rate
-
-                    reference_genome_name = assignment.species
-
                     category_id = f"{dataset_id}.{reference_genome_id}"
 
                     colour = bar_colours.contaminant
@@ -217,7 +208,7 @@ class MultiqcModule(BaseMultiqcModule):
                     # log.debug("{} - ({} - {}) * ({} - {}) / ({} - {})".format(max_alpha, max_alpha, min_alpha, assigned_error, min_error, max_error, min_error))
                     # log.debug("{} - {} * {} / {}".format(max_alpha, max_alpha - min_alpha, assigned_error - min_error, max_error - min_error))
 
-                    alpha = max_alpha - (max_alpha - min_alpha) * (assigned_error - min_error) / (max_error - min_error)
+                    alpha = max_alpha - (max_alpha - min_alpha) * (assignment.assigned_error_rate - min_error) / (max_error - min_error)
 
                     # log.debug("alpha = {}".format(alpha))
 
@@ -225,13 +216,13 @@ class MultiqcModule(BaseMultiqcModule):
 
                     # log.debug("capped alpha = {}".format(alpha))
 
-                    if assigned_count >= 100:
-                        log.debug("{}\t{}\t{}\t{}".format(reference_genome_id, assigned_count, aligned_error * 100.0, alpha))
+                    if assignment.assigned >= 100:
+                        log.debug("{}\t{}\t{}\t{}".format(reference_genome_id, assignment.assigned, assignment.error_rate * 100.0, alpha))
 
-                    dataset_bar_data[category_id] = int(assigned_count * sampled_to_sequenced)
+                    dataset_bar_data[category_id] = int(assignment.assigned * sampled_to_sequenced)
 
                     dataset_categories[category_id] = {
-                        'name': reference_genome_name,
+                        'name': assignment.species,
                         'color': colour.applyAlpha(alpha).toHtml()
                     }
 
@@ -240,11 +231,11 @@ class MultiqcModule(BaseMultiqcModule):
 
             bar_data[dataset_id] = dataset_bar_data
 
-            log.debug(f"Unmapped count: {unmapped_count} / {sampled_count}")
+            log.debug(f"Unmapped count: {dataset_summary.unmapped} / {sampled_count}")
 
             # Add the unmapped count.
             category_id = f"{dataset_id}.unmapped"
-            dataset_bar_data[category_id] = int(unmapped_count * sampled_to_sequenced)
+            dataset_bar_data[category_id] = int(dataset_summary.unmapped * sampled_to_sequenced)
             dataset_categories[category_id] = {
                 'name': 'Unmapped',
                 'color': bar_colours.unmapped.toHtml()
@@ -255,12 +246,12 @@ class MultiqcModule(BaseMultiqcModule):
             for category_id in dataset_bar_data.keys():
                 categories[category_id] = dataset_categories[category_id]
 
-            log.debug(f"Adapter count: {adapter_count} / {sampled_count}")
+            log.debug(f"Adapter count: {dataset_summary.adapter} / {sampled_count}")
 
-            if adapter_count >= sampled_count * adapter_threshold_multiplier:
+            if dataset_summary.adapter >= sampled_count * adapter_threshold_multiplier:
                 dataset_adapter_id = f"{dataset_id}A" if mga_data.from_sequencing else f"{dataset_id} adapter"
                 category_id = f"{dataset_id}.adapter"
-                dataset_bar_data = { category_id: int(adapter_count * sampled_to_sequenced) }
+                dataset_bar_data = { category_id: int(dataset_summary.adapter * sampled_to_sequenced) }
                 bar_data[dataset_adapter_id] = dataset_bar_data
                 categories[category_id] = {
                     'name': 'Adapter',
