@@ -36,4 +36,4 @@ def mga2_plugin_execution_start():
 
     # Add to the search patterns used by modules
     if 'mga2' not in config.sp:
-        config.update_dict( config.sp, { 'mga2': { 'fn': 'genome_alignment_summary.csv' } } )
+        config.update_dict( config.sp, { 'mga2': { 'fn': '*mga_alignment_summary.csv' } } )

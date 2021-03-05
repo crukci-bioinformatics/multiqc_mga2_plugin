@@ -38,7 +38,8 @@ class MGAData(object):
 
 
 class MGADataset(object):
-    def __init__(self):
+    def __init__(self, id):
+        self.id = id
         self.assignments = dict()
         self.summary = None
 

@@ -74,7 +74,7 @@ class MultiqcModule(BaseMultiqcModule):
 
     def load_mga_files(self):
         """
-        Find and load the content of MGA2 genome_alignment_summary.csv files.
+        Find and load the content of MGA2 mga_alignment_summary.csv files.
 
         :return A dictionary of MGA dataset ids to further dictionaries of summary
         dictionaries (the rows from the files) keyed by genome ids. Or
@@ -99,14 +99,14 @@ class MultiqcModule(BaseMultiqcModule):
 
     def _read_mga2_csv_file(self, mga_data, mgafile):
         """
-        Read a MGA2 genome alignment summary file.
+        Read a MGA2 alignment summary file.
 
         :param dict mga_data: A dictionary into which found content can be added, keyed by dataset id.
         :param dict mgafile: The CSV file to load.
         """
 
         mgafile_path = os.path.join(mgafile["root"], mgafile["fn"])
-        summaryfile_name = "summary.csv"
+        summaryfile_name = mgafile['fn'].replace("mga_alignment_summary", "mga_summary")
         summaryfile_path = os.path.join(mgafile["root"], summaryfile_name)
 
         if not os.path.exists(summaryfile_path):
@@ -122,7 +122,7 @@ class MultiqcModule(BaseMultiqcModule):
                 dataset_id = assignment['id']
                 dataset = mga_data.datasets.get(dataset_id)
                 if dataset is None:
-                    dataset = MGADataset()
+                    dataset = MGADataset(dataset_id)
                     mga_data.datasets[dataset_id] = dataset
 
                 genome = assignment['genome']
@@ -160,32 +160,23 @@ class MultiqcModule(BaseMultiqcModule):
             plot = bargraph.plot(plot_data, plot_categories, self._plot_config(mga_data))
         )
 
-        # The two summary tables (two per dataset in the run).
-        '''
-        for dataset_id, mga_summary in run_info.mga_summaries.items():
-
-            sequence_count = int(mga_summary.findtext('SequenceCount'))
-            sampled_count = int(mga_summary.findtext('SampledCount'))
+        # The summary table (one per dataset).
+        
+        for dataset_id, mga_dataset in mga_data.datasets.items():
 
             self.add_section(
-                name = f'Lane {dataset_id} Statistics' if run_info.from_sequencing else f'Dataset "{mga_summary}" Statistics',
+                name = f'Lane {dataset_id} Statistics' if mga_data.from_sequencing else f'Dataset "{mga_summary}" Statistics',
                 anchor = f"mga_stats_{dataset_id}",
-                plot = table.plot(self._main_table_data(mga_summary), self._main_table_headers(), self._main_table_config(dataset_id)),
+                plot = table.plot(self._main_table_data(mga_dataset), self._main_table_headers(), self._main_table_config(dataset_id)),
                 description = f"""
                     <table>
-                        <tr><td>Sequences:</td><td>{sequence_count:,}</td></tr>
-                        <tr><td>Sampled:</td><td>{sampled_count:,}</td></tr>
+                        <tr><td>Sequences:</td><td>{mga_dataset.summary.sequences:,}</td></tr>
+                        <tr><td>Sampled:</td><td>{mga_dataset.summary.sampled:,}</td></tr>
                     </table>
                     <br/>
                 """
             )
 
-            self.add_section(
-                name = f'Lane {dataset_id} Samples' if run_info.from_sequencing else f'Dataset "{dataset_id}" Statistics',
-                anchor = f"mga_samples_{dataset_id}",
-                plot = table.plot(self._sample_table_data(mga_summary), self._sample_table_headers(), self._sample_table_config(run_info, dataset_id))
-            )
-        '''
 
     def _plot_data(self, mga_data):
         '''
@@ -258,15 +249,15 @@ class MultiqcModule(BaseMultiqcModule):
 
             bar_data[dataset_id] = dataset_bar_data
 
+            log.debug(f"Unmapped count: {unmapped_count} / {sampled_count}")
+
             # Add the unmapped count.
-            if True:
-                assignment = mga_dataset.assignments['unmapped']
-                category_id = f"{dataset_id}.unmapped"
-                dataset_bar_data[category_id] = int(unmapped_count * sampled_to_sequenced)
-                dataset_categories[category_id] = {
-                    'name': 'Unmapped',
-                    'color': bar_colours.unmapped.toHtml()
-                }
+            category_id = f"{dataset_id}.unmapped"
+            dataset_bar_data[category_id] = int(unmapped_count * sampled_to_sequenced)
+            dataset_categories[category_id] = {
+                'name': 'Unmapped',
+                'color': bar_colours.unmapped.toHtml()
+            }
 
             # The order of categories matters for the order in the plot, so add them to the
             # overall categories dictionary in the order they are in for the bar data.
@@ -310,7 +301,7 @@ class MultiqcModule(BaseMultiqcModule):
             'ymin': 0,
             'ymax': mga_data.max_sequence_count,
             'use_legend': False,
-            'tt_percentages': False,
+            'tt_percentages': True,
             'hide_zero_cats': False
         }
 
@@ -421,7 +412,7 @@ class MultiqcModule(BaseMultiqcModule):
         return self._strip_from_lines(help)
 
 
-    def _main_table_data(self, mga_summary):
+    def _main_table_data(self, mga_dataset):
         '''
         Assemble the data for a summary table for a given dataset.
 
@@ -429,53 +420,29 @@ class MultiqcModule(BaseMultiqcModule):
 
         :return The table data as required for table.plot.
         '''
-        dataset_id = mga_summary.findtext('DatasetId')
-        sequence_count = int(mga_summary.findtext('SequenceCount'))
-        sampled_count = int(mga_summary.findtext('SampledCount'))
-        adapter_count = int(mga_summary.findtext('AdapterCount'))
-        unmapped_count = int(mga_summary.findtext('UnmappedCount'))
-
-        species, controls = self._get_species_and_controls(mga_summary)
+        dataset_id = mga_dataset.id
+        summary = mga_dataset.summary
 
         number_of_others = 0
         other_assigned_count = 0
         table_data = dict()
 
-        for alignment_summary in mga_summary.findall("AlignmentSummaries/AlignmentSummary"):
-            if not self._accept_genome(species, mga_summary, alignment_summary):
-                assigned_count = int(alignment_summary.findtext("AssignedCount"))
+        for assignment in mga_dataset.assignments.values():
+            if not self._accept_genome(assignment):
+                assigned_count = assignment.assigned
                 number_of_others = number_of_others + 1
                 other_assigned_count = other_assigned_count + assigned_count
 
-        for alignment_summary in mga_summary.findall("AlignmentSummaries/AlignmentSummary"):
-            if number_of_others < 2 or self._accept_genome(species, mga_summary, alignment_summary):
-                aligned_count = int(alignment_summary.findtext("AlignedCount"))
-                aligned_error = float(alignment_summary.findtext("ErrorRate"))
-                unique_count = int(alignment_summary.findtext("UniquelyAlignedCount"))
-                unique_error = float(alignment_summary.findtext("UniquelyAlignedErrorRate"))
-                preferred_count = int(alignment_summary.findtext("PreferentiallyAlignedCount"))
-                preferred_error = float(alignment_summary.findtext("PreferentiallyAlignedErrorRate"))
-                assigned_count = int(alignment_summary.findtext("AssignedCount"))
-                assigned_error = float(alignment_summary.findtext("AssignedErrorRate"))
-
-                reference_genome_id = alignment_summary.find("ReferenceGenome").attrib['id']
-                reference_genome_name = alignment_summary.find("ReferenceGenome").attrib['name']
-
-                aligned_fraction = float(aligned_count) / float(sampled_count)
-                assigned_fraction = float(assigned_count) / float(sampled_count)
-
+        for reference_genome_id, assignment in mga_dataset.assignments.items():
+            if number_of_others < 2 or self._accept_genome(assignment):
                 table_data[reference_genome_id] = {
-                    'species': reference_genome_name,
-                    'aligned_count': aligned_count,
-                    'aligned_perc': aligned_fraction,
-                    'aligned_error': aligned_error,
-                    'unique_count': unique_count,
-                    'unique_error': unique_error,
-                    'preferred_count': preferred_count,
-                    'preferred_error': preferred_error,
-                    'assigned_count': assigned_count,
-                    'assigned_perc': assigned_fraction,
-                    'assigned_error': assigned_error
+                    'species': assignment.species,
+                    'aligned_count': assignment.aligned,
+                    'aligned_perc': assignment.aligned_pc / 100.0,
+                    'aligned_error': assignment.error_rate / 100.0,
+                    'assigned_count': assignment.assigned,
+                    'assigned_perc': assignment.assigned_pc / 100.0,
+                    'assigned_error': assignment.assigned_error_rate / 100.0
                 }
 
         # Sort into decreasing order of assigned count.
@@ -485,19 +452,19 @@ class MultiqcModule(BaseMultiqcModule):
             table_data['Other'] = {
                 'species': f"{number_of_others} others",
                 'aligned_count': other_assigned_count,
-                'aligned_perc': other_assigned_count / sampled_count
+                'aligned_perc': float(other_assigned_count) / float(summary.sampled)
             }
 
         table_data['Unmapped'] = {
             'species': '',
-            'aligned_count': unmapped_count,
-            'aligned_perc': unmapped_count / sampled_count
+            'aligned_count': summary.unmapped,
+            'aligned_perc': summary.unmapped_pc / 100.0
         }
 
         table_data['Adapter'] = {
             'species': '',
-            'aligned_count': adapter_count,
-            'aligned_perc': adapter_count / sampled_count
+            'aligned_count': summary.adapter,
+            'aligned_perc': summary.adapter_pc / 100.0
         }
 
         return table_data
@@ -535,38 +502,6 @@ class MultiqcModule(BaseMultiqcModule):
         headers['aligned_error'] = {
             'title': 'Error rate',
             'description': 'Aligned error rate',
-            'min': 0,
-            'max': 100,
-            'format': '{:,.2%}',
-            'scale': False
-        }
-        headers['unique_count'] = {
-            'title': 'Unique',
-            'description': 'Number of uniquely aligned reads',
-            'min': 0,
-            'format': '{:d}',
-            'scale': False,
-            #'shared_key': 'read_count'
-        }
-        headers['unique_error'] = {
-            'title': 'Error rate',
-            'description': 'Uniquely aligned error rate',
-            'min': 0,
-            'max': 100,
-            'format': '{:,.2%}',
-            'scale': False
-        }
-        headers['preferred_count'] = {
-            'title': 'Best',
-            'description': 'Number of reads for which the genome is the best alignment',
-            'min': 0,
-            'format': '{:d}',
-            'scale': False,
-            #'shared_key': 'read_count'
-        }
-        headers['preferred_error'] = {
-            'title': 'Error rate',
-            'description': 'Error rate for best aligned reads',
             'min': 0,
             'max': 100,
             'format': '{:,.2%}',
@@ -616,104 +551,6 @@ class MultiqcModule(BaseMultiqcModule):
             'col1_header': 'Reference ID',
             'no_beeswarm': True,
             'sortRows': False
-        }
-
-
-    def _sample_table_data(self, mga_summary):
-        '''
-        Assemble the data for a sample table for a given dataset.
-
-        :param mga_summary: An XML tree for a dataset.
-
-        :return The table data as required for table.plot.
-        '''
-        dataset_id = mga_summary.findtext('DatasetId')
-
-        table_data = OrderedDict()
-
-        for sample_xml in mga_summary.findall("Samples/Sample"):
-            sample_id = None
-            sample_name = None
-            sample_info = dict()
-            for name, value in self._read_properties(sample_xml).items():
-                key = name.lower().replace(' ', '_')
-                if key == 'sample_id':
-                    sample_id = value
-                elif key == 'sample_name':
-                    sample_name = value
-                else:
-                    # Make sure no element is None. Some keys may be in the sample properties
-                    # with no value.
-                    sample_info[key] = '' if value is None else value
-
-            row_id = f"{sample_id} / {sample_name}"
-            table_data[row_id] = sample_info
-
-        return table_data
-
-
-    def _sample_table_headers(self):
-        '''
-        Create the headers for an MGA sample table.
-
-        :return A dictionary of table header information.
-        '''
-        headers = OrderedDict()
-        headers['group'] = {
-            'title': 'Group',
-            'description': 'Research group name',
-            'scale': False
-        }
-        headers['owner'] = {
-            'title': 'Owner',
-            'description': 'Researcher name',
-            'scale': False
-        }
-        headers['sequence_type'] = {
-            'title': 'Sequence Type',
-            'description': 'The type of material in the sample',
-            'scale': False
-        }
-        headers['end_type'] = {
-            'title': 'End Type',
-            'description': 'The sequencing method: single read or paired end',
-            'scale': False
-        }
-        headers['library_type'] = {
-            'title': 'Experiment Type',
-            'description': 'The type of library (technique) used to create the sequencing pool',
-            'scale': False
-        }
-        headers['species'] = {
-            'title': 'Species',
-            'description': 'Reference genome species',
-            'scale': False
-        }
-        headers['control'] = {
-            'title': 'Control',
-            'description': 'Whether the reference genome is a control reference or not',
-            'scale': False
-        }
-        return headers
-
-
-    def _sample_table_config(self, run_info, dataset_id):
-        '''
-        Create the table configuration for a summary table.
-
-        :param run_info: The run information that contains the dataset in question.
-        :param dataset_id: The id of the dataset the table contains.
-
-        :return A dictionary of table configuration parameters.
-        '''
-        return {
-            'namespace': 'mga',
-            'id': f'mga_sample_table_{dataset_id}',
-            'table_title': dataset_id,
-            'col1_header': "Pool / Sample" if run_info.from_sequencing else "Sample ID / Name",
-            'no_beeswarm': True,
-            'sortRows': False,
-            'only_defined_headers': True
         }
 
 
