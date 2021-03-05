@@ -73,7 +73,7 @@ class MultiqcModule(BaseMultiqcModule):
         self.create_mga_reports(mga_data)
 
 
-    def load_mga_files(self):
+    def load_mga_files(self) -> MGAData:
         """
         Find and load the content of MGA2 mga_alignment_summary.csv files.
 
@@ -97,7 +97,7 @@ class MultiqcModule(BaseMultiqcModule):
         return mga_data
 
 
-    def _read_mga2_csv_file(self, mga_data, mgafile):
+    def _read_mga2_csv_file(self, mga_data: MGAData, mgafile: dict):
         """
         Read a MGA2 alignment summary file.
         
@@ -132,7 +132,7 @@ class MultiqcModule(BaseMultiqcModule):
                 mga_data.set_summary_from_csv(summary)
 
 
-    def create_mga_reports(self, mga_data):
+    def create_mga_reports(self, mga_data: MGAData):
         '''
         Build the sections for the overall report
 
@@ -170,7 +170,7 @@ class MultiqcModule(BaseMultiqcModule):
             )
 
 
-    def _plot_data(self, mga_data):
+    def _plot_data(self, mga_data: MGAData) -> tuple:
         '''
         Assemble the plot information.
 
@@ -270,7 +270,7 @@ class MultiqcModule(BaseMultiqcModule):
         return bar_data, categories
 
 
-    def _plot_config(self, mga_data):
+    def _plot_config(self, mga_data: MGAData) -> dict:
         '''
         Create the plot configuration for the main MGA plot.
 
@@ -293,7 +293,7 @@ class MultiqcModule(BaseMultiqcModule):
         }
 
 
-    def _plot_key(self):
+    def _plot_key(self) -> str:
         '''
         Create a key for the MGA plot. This cannot easily be done through the standard
         mechanisms, so an HTML snippet is created here with little coloured spans that
@@ -315,7 +315,7 @@ class MultiqcModule(BaseMultiqcModule):
         return key_desc
 
 
-    def _plot_help(self, mga_data):
+    def _plot_help(self, mga_data: MGAData) -> str:
         '''
         Build the help text for the plot.
 
@@ -399,7 +399,7 @@ class MultiqcModule(BaseMultiqcModule):
         return self._strip_from_lines(help)
 
 
-    def _main_table_data(self, mga_dataset):
+    def _main_table_data(self, mga_dataset: MGADataset) -> OrderedDict:
         '''
         Assemble the data for a summary table for a given dataset.
 
@@ -463,7 +463,7 @@ class MultiqcModule(BaseMultiqcModule):
         return table_data
 
 
-    def _main_table_headers(self):
+    def _main_table_headers(self) -> OrderedDict:
         '''
         Create the headers for an MGA summary table.
 
@@ -529,7 +529,7 @@ class MultiqcModule(BaseMultiqcModule):
         return headers
 
 
-    def _main_table_config(self, dataset_id):
+    def _main_table_config(self, dataset_id: str) -> dict:
         '''
         Create the table configuration for a summary table.
 
@@ -548,7 +548,7 @@ class MultiqcModule(BaseMultiqcModule):
         }
 
 
-    def _accept_genome(self, assignment):
+    def _accept_genome(self, assignment: MGAAssignment) -> bool:
         '''
         Determine whether an alignment summary qualifies as a genome that is acceptable for
         explicit listing in the plot or table. This is essentially either that the genome is one
@@ -558,7 +558,7 @@ class MultiqcModule(BaseMultiqcModule):
 
         :return if the alignment summary needs to appear in the plot or table, false if it is
         unnecessary.
-        :rtype boolean
+        :rtype bool
         '''
         if assignment.expected: return True
 
@@ -567,7 +567,7 @@ class MultiqcModule(BaseMultiqcModule):
                assignment.error_rate < error_rate_threshold
 
 
-    def _strip_from_lines(self, str):
+    def _strip_from_lines(self, str: str) -> str:
         '''
         Remove leading and trailing white space from the given multi-line string,
         preserving line breaks.

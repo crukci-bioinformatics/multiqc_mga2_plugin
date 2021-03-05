@@ -4,25 +4,59 @@
 
 from distutils.util import strtobool
 
-def _trim_to_none(str):
-    if str is None:
-        return None
+def _trim_to_none(str: str) -> str:
+    '''
+    Trim a string to None.
+    
+    :param str str: The string to trim.
+    :return The trimmed string, or None if the string contained nothing or only whitespace.
+    :rtype str
+    '''
+    if str is None: return None
     str = str.strip()
     return None if len(str) == 0 else str
 
-def _to_bool(str):
+def _to_bool(str: str) -> str:
+    '''
+    Convert a string to a bool.
+
+    :param str str: The string convert.
+    :return True if the string is a value indicating this, as defined by "strtobool". False otherwise.
+    :rtype bool
+    '''
     str = _trim_to_none(str)
     return False if str is None else bool(strtobool(str))
 
 def _to_int(str):
+    '''
+    Convert a string to an integer.
+
+    :param str str: The string convert.
+    :return The string converted to a number. If the string is empty or None, return 0.
+    :rtype int
+    '''
     str = _trim_to_none(str)
     return 0 if str is None else int(str)
 
 def _to_float(str):
+    '''
+    Convert a string to a float.
+
+    :param str str: The string convert.
+    :return The string converted to a number. If the string is empty or None, return 0.0.
+    :rtype float
+    '''
     str = _trim_to_none(str)
     return 0.0 if str is None else float(str)
 
 def _to_frac(str):
+    '''
+    Convert a string percentage to a float decimal fraction.
+
+    :param str str: The string convert.
+    :return The string converted to a number and divided by 100. If the string is empty or None, return 0.0.
+    :rtype float
+    '''
     return _to_float(str) / 100.0
 
 
