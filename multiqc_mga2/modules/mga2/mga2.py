@@ -40,6 +40,7 @@ assigned_fraction_threshold = 0.01
 aligned_fraction_threshold = 0.01
 error_rate_threshold = 0.0125
 adapter_threshold_multiplier = 0.005
+    
 
 # Based on https://github.com/MultiQC/example-plugin
 
@@ -99,6 +100,10 @@ class MultiqcModule(BaseMultiqcModule):
     def _read_mga2_csv_file(self, mga_data, mgafile):
         """
         Read a MGA2 alignment summary file.
+        
+        The file given as "mgafile" is the alignment summary file. We expect to find a file
+        for the overall MGA summary next to it, such if the original is prefix.mga_alignment_summary.csv
+        the summary file is prefix.mga_summary.csv
 
         :param MGAData mga_data: The MGAData structure to read into.
         :param dict mgafile: The CSV file to load.
@@ -131,11 +136,7 @@ class MultiqcModule(BaseMultiqcModule):
         '''
         Build the sections for the overall report
 
-        :param mga_data: The data loaded from the MGA files. It is a dictionary with the
-        dataset id as the key and a further dictionary keyed by genome id to that pairing's
-        full data.
-
-        :param mga_summaries: A dictionary of the summary information, keyed by dataset id.
+        :param MGAData mga_data: The data loaded from the MGA files.
         '''
 
         # The plot.
@@ -173,10 +174,11 @@ class MultiqcModule(BaseMultiqcModule):
         '''
         Assemble the plot information.
 
-        :param mga_summaries: A dictionary of the summary information, keyed by dataset id.
+        :param MGAData mga_data: The data loaded from the MGA files.
 
         :return A tuple of bargraph plot data and categories. Both values are dictionaries keyed
         by dataset id.
+        :rtype tuple
         '''
 
         bar_data = OrderedDict()
@@ -190,12 +192,15 @@ class MultiqcModule(BaseMultiqcModule):
 
             sampled_to_sequenced = float(sequence_count) / float(sampled_count)
 
-            dataset_bar_data = dict()
+            # Sort assignments first.
+            sorted_assignments = sorted(mga_dataset.assignments.values())
+
+            dataset_bar_data = OrderedDict()
             dataset_categories = dict()
 
-            for reference_genome_id, assignment in mga_dataset.assignments.items():
+            for assignment in sorted_assignments:
                 if self._accept_genome(assignment):
-                    category_id = f"{dataset_id}.{reference_genome_id}"
+                    category_id = f"{dataset_id}.{assignment.genome}"
 
                     colour = bar_colours.contaminant
                     if assignment.control:
@@ -217,7 +222,7 @@ class MultiqcModule(BaseMultiqcModule):
                     # log.debug("capped alpha = {}".format(alpha))
 
                     if assignment.assigned >= 100:
-                        log.debug("{}\t{}\t{}\t{}".format(reference_genome_id, assignment.assigned, assignment.error_rate * 100.0, alpha))
+                        log.debug("{}\t{}\t{}\t{}".format(assignment.genome, assignment.assigned, assignment.error_rate * 100.0, alpha))
 
                     dataset_bar_data[category_id] = int(assignment.assigned * sampled_to_sequenced)
 
@@ -227,7 +232,7 @@ class MultiqcModule(BaseMultiqcModule):
                     }
 
             # Sort into decreasing order of assigned count.
-            dataset_bar_data = OrderedDict(sorted(dataset_bar_data.items(), key = lambda x: -x[1]))
+            #dataset_bar_data = OrderedDict(sorted(dataset_bar_data.items(), key = lambda x: -x[1]))
 
             bar_data[dataset_id] = dataset_bar_data
 
@@ -269,10 +274,10 @@ class MultiqcModule(BaseMultiqcModule):
         '''
         Create the plot configuration for the main MGA plot.
 
-        :param run_info: The information for MGA data with one run id, as created by
-        _merge_run_summaries
+        :param MGAData mga_data: The data loaded from the MGA files.
 
         :return A dictionary of plot configuration parameters.
+        :rtype dict
         '''
         return {
             'id': "mga_plot_{}".format(mga_data.run_id.replace(' ', '_')),
@@ -295,6 +300,7 @@ class MultiqcModule(BaseMultiqcModule):
         form a key to the plot.
 
         :return An HTML snippet to insert as custom content to the plot.
+        :rtype str
         '''
         key_elem_span = '<span class="multiqc_mga_key_element" style="background-color:{}">&nbsp;&nbsp;&nbsp;&nbsp;</span>&nbsp;{}\n'
 
@@ -313,10 +319,10 @@ class MultiqcModule(BaseMultiqcModule):
         '''
         Build the help text for the plot.
 
-        :param run_info: The information for MGA data with one run id, as created by
-        _merge_run_summaries
+        :param MGAData mga_data: The data loaded from the MGA files.
 
         :return Markdown help text.
+        :rtype str
         '''
 
         species = set()
@@ -397,9 +403,10 @@ class MultiqcModule(BaseMultiqcModule):
         '''
         Assemble the data for a summary table for a given dataset.
 
-        :param mga_summary: An XML tree for a dataset.
+        :param MGADataset mga_dataset: The MGA dataset information.
 
         :return The table data as required for table.plot.
+        :rtype dict
         '''
         dataset_id = mga_dataset.id
         summary = mga_dataset.summary
@@ -409,6 +416,8 @@ class MultiqcModule(BaseMultiqcModule):
         other_assigned_count = 0
         table_data = dict()
 
+        # Count how many genomes are to go in the "other" category, and count
+        # their alignments and assignments.
         for assignment in mga_dataset.assignments.values():
             if not self._accept_genome(assignment):
                 number_of_others = number_of_others + 1
@@ -459,6 +468,7 @@ class MultiqcModule(BaseMultiqcModule):
         Create the headers for an MGA summary table.
 
         :return A dictionary of table header information.
+        :rtype dict
         '''
         headers = OrderedDict()
         headers['species'] = {
@@ -523,9 +533,10 @@ class MultiqcModule(BaseMultiqcModule):
         '''
         Create the table configuration for a summary table.
 
-        :param dataset_id: The id of the dataset the table contains.
+        :param str dataset_id: The id of the dataset the table contains.
 
         :return A dictionary of table configuration parameters.
+        :rtype dict
         '''
         return {
             'namespace': 'mga',
@@ -540,16 +551,16 @@ class MultiqcModule(BaseMultiqcModule):
     def _accept_genome(self, assignment):
         '''
         Determine whether an alignment summary qualifies as a genome that is acceptable for
-        a sample. This is essentially either that the genome is one of the genomes that apply
-        to any sample in the data set, or one where the counts are high enough to be significant.
+        explicit listing in the plot or table. This is essentially either that the genome is one
+        of the expected genomes, or one where the counts are high enough to be significant.
 
-        :param assignment: The dictionary containing the information for a dataset and genome.
+        :param MGAAssignment assignment: The structure containing the genome's assignment information.
 
         :return if the alignment summary needs to appear in the plot or table, false if it is
         unnecessary.
+        :rtype boolean
         '''
-        if assignment.expected or assignment.control:
-            return True
+        if assignment.expected: return True
 
         return assignment.assigned_frac >= assigned_fraction_threshold or \
                assignment.aligned_frac >= aligned_fraction_threshold and \
@@ -564,6 +575,7 @@ class MultiqcModule(BaseMultiqcModule):
         :param str: The string to strip.
 
         :return The string with each line's leading and trailing white space removed.
+        :rtype str
         '''
         lines = [ l.strip() for l in str.splitlines() ]
         return "\n".join(lines)

@@ -27,6 +27,16 @@ def _to_frac(str):
 
 
 class MGAData(object):
+    '''
+    The top level object for MGA data.
+    
+    Contains a dictionary of MGADataset objects
+    (keyed by dataset id), a maximum sequence count (the greatest number of reads
+    in any data set), a flag indicating whether this is from a sequencing process
+    or arbitrary set of files, and a name for the analysis to put in plot titles
+    at the like.
+    '''
+
     def __init__(self):
         self.datasets = dict()
         self.max_sequence_count = 0
@@ -34,6 +44,12 @@ class MGAData(object):
         self.run_id = "210121_A00489_0753_BHYTFKDRXX"
 
     def add_assignment_from_csv(self, assignment):
+        '''
+        Turn a dictionary of row values from the CSV file into a MGADataset
+        object and add it to our "datasets" dictionary.
+        
+        :param dict assignment: An assignment information row from the MGA alignment summary file.
+        '''
         dataset_id = assignment['id']
         dataset = self.datasets.get(dataset_id)
 
@@ -44,11 +60,25 @@ class MGAData(object):
         dataset.add_assignment_from_csv(assignment)
     
     def set_summary_from_csv(self, summary):
+        '''
+        Turn a dictionary of row values from the CSV file into an MGADatasetSummary
+        object and set it as the dataset's summary.
+        
+        :param dict summary: A summary information row from the MGA summary file.
+        '''
         dataset_id = summary['id']
         dataset = self.datasets[dataset_id]
         dataset.set_summary_from_csv(summary)
 
     def calculate_max_sequences(self):
+        '''
+        Calculate the maximum number of reads from each of the data sets in this
+        object.
+        
+        :return The maximum number of reads in any of the data sets, subsequently
+        available through the "max_sequence_count" field.
+        :rtype Integer
+        '''
         self.max_sequence_count = 0
         for dataset in self.datasets.values():
             self.max_sequence_count = max(self.max_sequence_count, dataset.summary.sequences)
@@ -56,6 +86,13 @@ class MGAData(object):
 
 
 class MGADataset(object):
+    '''
+    The dataset level object for MGA.
+    
+    This is the information for a specific data set. It contains a dictionary of
+    MGAAssignment objects (keyed by genome), an MGAAssignment object for the unmapped
+    counts, and a MGADatasetSummary object for the summary information for this dataset.
+    '''
     def __init__(self, id):
         self.id = id
         self.assignments = dict()
@@ -63,6 +100,12 @@ class MGADataset(object):
         self.summary = None
 
     def add_assignment_from_csv(self, assignment):
+        '''
+        Turn a dictionary of row values from the CSV file into a MGAAssignment
+        object and add it to our "assignments" dictionary.
+        
+        :param dict assignment: An assignment information row from the MGA alignment summary file.
+        '''
         genome = assignment['genome']
         if genome == 'unmapped':
             self.unmapped = MGAAssignment(assignment)
@@ -70,10 +113,21 @@ class MGADataset(object):
             self.assignments[genome] = MGAAssignment(assignment)
             
     def set_summary_from_csv(self, summary):
+        '''
+        Turn a dictionary of row values from the CSV file into an MGADatasetSummary
+        object and set it as our summary.
+        
+        :param dict summary: A summary information row from the MGA summary file.
+        '''
         self.summary = MGADatasetSummary(summary)
 
 
 class MGAAssignment(object):
+    '''
+    Structure for the information from an alignment summary.
+
+    Percentages are turned into decimals.
+    '''
     def __init__(self, assignment):
         self.id = _trim_to_none(assignment['id'])
         self.genome = _trim_to_none(assignment['genome'])
@@ -87,8 +141,46 @@ class MGAAssignment(object):
         self.assigned_frac = _to_frac(assignment['assigned %'])
         self.assigned_error_rate = _to_frac(assignment['assigned error rate'])
 
+    def _sort_order(self, other):
+        '''
+        Helper method for sorting MGAAssignment objects for the MGA plot.
+        
+        The order is expected before unexpected genomes, then real genomes before controls,
+        then sort by descending number of assignment counts.
+
+        :return A number < 0 if this assignment should be before other,
+        a number > 0 if other should be before this assignment, and zero
+        if no difference can be made.
+        '''
+        if other is None: return 0
+
+        result = other.expected - self.expected
+        if result == 0:
+            result = self.control - other.control
+        if result == 0:
+            result = other.assigned - self.assigned
+        return result
+
+    def __eq__(self, other):
+        return self._sort_order(other) == 0
+    def __ne__(self, other):
+        return self._sort_order(other) != 0
+    def __lt__(self, other):
+        return self._sort_order(other) < 0
+    def __gt__(self, other):
+        return self._sort_order(other) > 0
+    def __le__(self, other):
+        return self._sort_order(other) <= 0
+    def __ge__(self, other):
+        return self._sort_order(other) >= 0
+
 
 class MGADatasetSummary(object):
+    '''
+    Structure for the information from a dataset summary.
+    
+    Percentages are turned into decimals.
+    '''
     def __init__(self, summary):
         self.id = _trim_to_none(summary['id'])
         self.species = _trim_to_none(summary['species'])
