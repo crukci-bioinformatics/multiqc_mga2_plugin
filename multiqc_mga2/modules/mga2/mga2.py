@@ -126,7 +126,10 @@ class MultiqcModule(BaseMultiqcModule):
                     mga_data.datasets[dataset_id] = dataset
 
                 genome = assignment['genome']
-                dataset.assignments[genome] = MGAAssignment(assignment)
+                if genome == 'unmapped':
+                    dataset.unmapped = MGAAssignment(assignment)
+                else:
+                    dataset.assignments[genome] = MGAAssignment(assignment)
 
         with open(summaryfile_path, newline='') as fh:
             log.debug(f"Found file {summaryfile_path}")
@@ -340,8 +343,7 @@ class MultiqcModule(BaseMultiqcModule):
         species = set()
         for dataset in mga_data.datasets.values():
             for assignment in dataset.assignments.values():
-                if assignment.genome != 'unmapped':
-                    species.add(assignment.species)
+                species.add(assignment.species)
 
         # See https://stackoverflow.com/questions/36139/how-to-sort-a-list-of-strings
         genomes = natsorted(species, key = cmp_to_key(locale.strcoll))
@@ -424,14 +426,15 @@ class MultiqcModule(BaseMultiqcModule):
         summary = mga_dataset.summary
 
         number_of_others = 0
+        other_aligned_count = 0
         other_assigned_count = 0
         table_data = dict()
 
         for assignment in mga_dataset.assignments.values():
             if not self._accept_genome(assignment):
-                assigned_count = assignment.assigned
                 number_of_others = number_of_others + 1
-                other_assigned_count = other_assigned_count + assigned_count
+                other_aligned_count = other_aligned_count + assignment.aligned
+                other_assigned_count = other_assigned_count + assignment.assigned
 
         for reference_genome_id, assignment in mga_dataset.assignments.items():
             if number_of_others < 2 or self._accept_genome(assignment):
@@ -452,7 +455,9 @@ class MultiqcModule(BaseMultiqcModule):
             table_data['Other'] = {
                 'species': f"{number_of_others} others",
                 'aligned_count': other_assigned_count,
-                'aligned_perc': float(other_assigned_count) / float(summary.sampled)
+                'aligned_perc': float(other_assigned_count) / float(summary.sampled),
+                'assigned_count': other_assigned_count,
+                'assigned_perc': float(other_assigned_count) / float(summary.sampled)
             }
 
         table_data['Unmapped'] = {
@@ -518,10 +523,9 @@ class MultiqcModule(BaseMultiqcModule):
         headers['assigned_perc'] = {
             'title': 'Assigned %',
             'description': 'Percentage of reads assigned',
-            'suffix': '%',
             'min': 0,
             'max': 100,
-            'format': '{:,.1f}',
+            'format': '{:,.1%}',
             'scale': False,
             #'shared_key': 'percent_aligned'
         }
@@ -565,9 +569,6 @@ class MultiqcModule(BaseMultiqcModule):
         :return if the alignment summary needs to appear in the plot or table, false if it is
         unnecessary.
         '''
-        if 'unmapped' == assignment.genome:
-            return False
-
         if assignment.expected or assignment.control:
             return True
 

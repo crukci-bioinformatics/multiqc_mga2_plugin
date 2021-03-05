@@ -41,6 +41,7 @@ class MGADataset(object):
     def __init__(self, id):
         self.id = id
         self.assignments = dict()
+        self.unmapped = None
         self.summary = None
 
 
