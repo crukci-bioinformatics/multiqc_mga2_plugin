@@ -22,8 +22,9 @@ setup(
     license = 'MIT',
     packages = find_packages(),
     include_package_data = True,
+    python_requires = '>=3.6',
     install_requires = [
-        'multiqc', 'natsort'
+        'multiqc>=1.9', 'natsort'
     ],
     entry_points = {
         'multiqc.modules.v1': [
