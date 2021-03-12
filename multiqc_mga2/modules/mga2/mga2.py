@@ -194,7 +194,7 @@ class MultiqcModule(BaseMultiqcModule):
             sequence_count = dataset_summary.sequences
             sampled_count = dataset_summary.sampled
 
-            sampled_to_sequenced = float(sequence_count) / max(float(sampled_count), 1)
+            sampled_to_sequenced = 0 if sequence_count == 0 else float(sequence_count) / float(sampled_count)
 
             # Sort assignments first.
             sorted_assignments = sorted(mga_dataset.assignments.values())
@@ -217,7 +217,7 @@ class MultiqcModule(BaseMultiqcModule):
                     # log.debug("{} - ({} - {}) * ({} - {}) / ({} - {})".format(max_alpha, max_alpha, min_alpha, assigned_error, min_error, max_error, min_error))
                     # log.debug("{} - {} * {} / {}".format(max_alpha, max_alpha - min_alpha, assigned_error - min_error, max_error - min_error))
 
-                    error_rate = assignment.assigned_error_rate if assignment.assigned_frac > assigned_fraction_threshold else assignment.error_rate
+                    error_rate = assignment.assigned_error_rate if assignment.assigned > 0 else assignment.error_rate
                     alpha = max_alpha - (max_alpha - min_alpha) * (error_rate - min_error) / (max_error - min_error)
 
                     # log.debug("alpha = {}".format(alpha))
@@ -445,12 +445,13 @@ class MultiqcModule(BaseMultiqcModule):
         table_data = OrderedDict(sorted(table_data.items(), key = lambda x: -x[1]['assigned_count']))
 
         if number_of_others >= 2:
+            aligned_frac = 0 if other_assigned_count == 0 else float(other_assigned_count) / float(summary.sampled)
             table_data['Other'] = {
                 'species': f"{number_of_others} others",
                 'aligned_count': other_assigned_count,
-                'aligned_perc': float(other_assigned_count) / max(float(summary.sampled), 1),
+                'aligned_perc': aligned_frac,
                 'assigned_count': other_assigned_count,
-                'assigned_perc': float(other_assigned_count) / max(float(summary.sampled), 1)
+                'assigned_perc': aligned_frac
             }
 
         table_data['Unmapped'] = {
