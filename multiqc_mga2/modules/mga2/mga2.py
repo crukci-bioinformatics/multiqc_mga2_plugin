@@ -28,7 +28,8 @@ bar_colours = SimpleNamespace(**{
     'control': Colour.fromBytes(255, 200, 0),
     'contaminant': Colour.fromBytes(255, 0, 0),
     'unmapped': Colour.fromBytes(224, 224, 224),
-    'adapter': Colour.fromBytes(255, 102, 255)
+    'adapter': Colour.fromBytes(255, 102, 255),
+    'noadapter': Colour.fromBytes(244, 244, 244)
 })
 
 max_alpha = 1.0
@@ -270,13 +271,20 @@ class MultiqcModule(BaseMultiqcModule):
 
             if dataset_summary.adapter >= sampled_count * adapter_threshold_multiplier:
                 dataset_adapter_id = f"{dataset_id}A" if mga_data.from_sequencing else f"{dataset_id} adapter"
+                dataset_bar_data = OrderedDict()
                 category_id = f"{dataset_id}.adapter"
-                dataset_bar_data = { category_id: int(dataset_summary.adapter * sampled_to_sequenced) }
-                bar_data[dataset_adapter_id] = dataset_bar_data
+                dataset_bar_data[category_id] = int(dataset_summary.adapter * sampled_to_sequenced)
                 categories[category_id] = {
                     'name': 'Adapter',
                     'color': bar_colours.adapter.toHtml()
                 }
+                category_id = f"{dataset_id}.noadapter"
+                dataset_bar_data[category_id] = int(sequence_count - dataset_summary.adapter * sampled_to_sequenced)
+                categories[category_id] = {
+                    'name': 'No adapter match',
+                    'color': bar_colours.noadapter.toHtml()
+                }
+                bar_data[dataset_adapter_id] = dataset_bar_data
 
 
         log.debug(f"Bar data = {bar_data}")
@@ -379,8 +387,8 @@ class MultiqcModule(BaseMultiqcModule):
             {assigned_fraction_threshold * 100:.4g}% of reads have assigned or to which at
             least {aligned_fraction_threshold * 100:.4g}% reads align with an average mismatch
             rate of below {error_rate_threshold * 100:.4g}%. An additional bar for adapter
-            sequences is only displayed if the percentage of reads containing matches is above
-            {adapter_threshold_multiplier * 100:.4g}%.
+            sequences is only displayed if at least {adapter_threshold_multiplier * 100:.4g}%
+            of reads contain adapter sequence matches.
 
             #### Assigning reads to genomes
 
