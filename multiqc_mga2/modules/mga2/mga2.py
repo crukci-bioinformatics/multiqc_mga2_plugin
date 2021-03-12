@@ -33,11 +33,11 @@ bar_colours = SimpleNamespace(**{
 })
 
 max_alpha = 1.0
-min_alpha = 0.4 # Is 0.1 in the Java version.
-max_error = 0.01
+min_alpha = 0.2 # Is 0.1 in the Java version.
+max_error = 0.015
 min_error = 0.0025
 
-assigned_fraction_threshold = 0.01
+assigned_fraction_threshold = 0.005
 aligned_fraction_threshold = 0.01
 error_rate_threshold = 0.0125
 adapter_threshold_multiplier = 0.005
@@ -194,7 +194,7 @@ class MultiqcModule(BaseMultiqcModule):
             sequence_count = dataset_summary.sequences
             sampled_count = dataset_summary.sampled
 
-            sampled_to_sequenced = float(sequence_count) / float(sampled_count)
+            sampled_to_sequenced = float(sequence_count) / max(float(sampled_count), 1)
 
             # Sort assignments first.
             sorted_assignments = sorted(mga_dataset.assignments.values())
@@ -217,7 +217,8 @@ class MultiqcModule(BaseMultiqcModule):
                     # log.debug("{} - ({} - {}) * ({} - {}) / ({} - {})".format(max_alpha, max_alpha, min_alpha, assigned_error, min_error, max_error, min_error))
                     # log.debug("{} - {} * {} / {}".format(max_alpha, max_alpha - min_alpha, assigned_error - min_error, max_error - min_error))
 
-                    alpha = max_alpha - (max_alpha - min_alpha) * (assignment.assigned_error_rate - min_error) / (max_error - min_error)
+                    error_rate = assignment.assigned_error_rate if assignment.assigned_frac > assigned_fraction_threshold else assignment.error_rate
+                    alpha = max_alpha - (max_alpha - min_alpha) * (error_rate - min_error) / (max_error - min_error)
 
                     # log.debug("alpha = {}".format(alpha))
 
@@ -269,7 +270,7 @@ class MultiqcModule(BaseMultiqcModule):
 
             log.debug(f"Adapter count: {dataset_summary.adapter} / {sampled_count}")
 
-            if dataset_summary.adapter >= sampled_count * adapter_threshold_multiplier:
+            if dataset_summary.adapter > 0 and dataset_summary.adapter >= sampled_count * adapter_threshold_multiplier:
                 dataset_adapter_id = f"{dataset_id}A" if mga_data.from_sequencing else f"{dataset_id} adapter"
                 dataset_bar_data = OrderedDict()
                 category_id = f"{dataset_id}.adapter"
@@ -447,9 +448,9 @@ class MultiqcModule(BaseMultiqcModule):
             table_data['Other'] = {
                 'species': f"{number_of_others} others",
                 'aligned_count': other_assigned_count,
-                'aligned_perc': float(other_assigned_count) / float(summary.sampled),
+                'aligned_perc': float(other_assigned_count) / max(float(summary.sampled), 1),
                 'assigned_count': other_assigned_count,
-                'assigned_perc': float(other_assigned_count) / float(summary.sampled)
+                'assigned_perc': float(other_assigned_count) / max(float(summary.sampled), 1)
             }
 
         table_data['Unmapped'] = {
