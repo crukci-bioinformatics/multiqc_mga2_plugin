@@ -60,7 +60,7 @@ class MultiqcModule(BaseMultiqcModule):
             anchor = 'mga',
             href = "https://github.com/crukci-bioinformatics/MGA2",
             info = """(multi-genome alignment) is a quality control tool for high-throughput sequence data
-                   written by Matthew Eldridge at the Cancer Research UK Cambridge Institute."""
+                   developed by the Bioinformatics Core at the Cancer Research UK Cambridge Institute."""
         )
 
         # Add to self.css to be included in template
@@ -147,8 +147,8 @@ class MultiqcModule(BaseMultiqcModule):
         plot_data, plot_categories = self._plot_data(mga_data)
 
         self.add_section(
-            name = 'Sequencing Results',
-            anchor = 'mga_sequencing_results',
+            name = 'Summary',
+            anchor = 'mga_summary',
             # description = self._plot_description(mga_data),
             content = self._plot_key(),
             helptext = self._plot_help(mga_data),
@@ -350,63 +350,53 @@ class MultiqcModule(BaseMultiqcModule):
         number_of_genomes = len(genomes)
 
         help = f"""
-            Sequences were sampled, trimmed to ##TRIM LENGTH## bases starting from position ##TRIM START##,
-            and mapped to {number_of_genomes} reference genomes (see list below) using Bowtie. Sequences containing
-            adapters were found by ungapped alignment of the full length sequence to a set of known adapter and
-            primer sequences using Exonerate.
+            MGA is a quality control tool for high-throughput sequencing data. It screens
+            for contaminants by aligning sequence reads in FASTQ format to a series of
+            reference genomes with Bowtie and to a set of adapter sequences using Exonerate.
 
-        """
+            MGA samples a subset of the reads, by default 100000, prior to alignment against
+            reference genome sequences and adapters, providing a fast screen for unexpected
+            sequence content by limiting the computational effort. Sequence reads are trimmed
+            to 36 bases by default, prior to alignment to the reference genomes, with the
+            aim of minimizing the run time and ensuring consistency of the resulting mapping
+            and error rates across sequencing runs with differing read lengths. Full length
+            reads are used for matching adapter sequences.
 
-        if mga_data.from_sequencing:
-            help += f"""
-                Some lanes may have an addition bar with the suffix "A" (e.g. "1A" for lane 1).
-                This is the adapter when the number of adapter reads is significant, equal to or
-                above {adapter_threshold_multiplier * 100:.4g}% of the number of sampled reads.
-            """
-        else:
-            help += f"""
-                Some data sets may have an addition bar with the suffix "adapter".
-                This is the adapter when the number of adapter reads is significant for the
-                data set, equal to or above {adapter_threshold_multiplier * 100:.4g}% of the number of sampled reads.
-            """
+            #### Summary plot
 
-        # See https://stackoverflow.com/questions/2440692/formatting-floats-without-trailing-zeros
+            The summary bar chart displays separate bars for each sample or dataset, one
+            representing the genome alignments and the other adapter matches. The genome bar
+            contains separate segments for each genome to which sampled reads have been
+            assigned and a segment for unmapped reads. The sizes of the segments are based 
+            on the sampled reads and have been scaled for the total number of sequences. The
+            transparency of each segment represents the error or mismatch rate for alignments
+            to that genome with segments appearing in bolder colours if the error rate is low
+            indicating that these are more likely to be real contaminants; very light or
+            transparent segments are of less concern as these largely consist of reads that
+            don't align well to any of the available genomes.
 
-        help += f"""
+            Results are only shown for genomes for which at least
+            {assigned_fraction_threshold * 100:.4g}% of reads have assigned or to which at
+            least {aligned_fraction_threshold * 100:.4g}% reads align with an average mismatch
+            rate of below {error_rate_threshold * 100:.4g}%. An additional bar for adapter
+            sequences is only displayed if the percentage of reads containing matches is above
+            {adapter_threshold_multiplier * 100:.4g}%.
 
-            #### Alignment Details
+            #### Assigning reads to genomes
 
-            Reference genomes are sorted according to how many sequence reads have been assigned to each.
-            Separate entries are given for reference genomes for which at least {assigned_fraction_threshold * 100:.4g}%
-            of reads have been assigned or for which at least {aligned_fraction_threshold * 100:.4g}% of reads align
-            with an average mismatch or error rate of below {error_rate_threshold * 100:.4g}%.
-
-            In addition to the total number of reads aligning to each reference genome and the average error
-            rate for those alignments, details are also provided for the the number of reads aligning uniquely
-            to the reference genome and and the associated error rate for those unique reads.
-
-            The 'Best' column and accompanying error rate refer to those reads that align
-            to a given reference genome with fewer mismatches than to other genomes.
-            Included are reads that align uniquely to the genome and those for which there
-            is a tie-break, aligning equally well to more than one genome. In the latter
-            case, a read will contribute to the 'Best' column for each of the genomes to
-            which it aligns the best. The sum of read counts in the 'Best' column can
-            therefore exceed the total number of sampled reads.
-
-            Reads that align uniquely to a genome are assigned unambiguously to that genome.
-            Tie-breaks in which reads align equally well to multiple genomes are assigned
-            preferentially to one of the expected species for this sequence dataset and/or
-            to the genome with the highest read count in the 'Best' column.
-
-            Note that because reads are trimmed prior to alignment with Bowtie, it is possible for a read to be
-            counted both as aligned to one or more of the reference genomes and among the reads with adapter
-            content. The adapter will most likely be present in the portion of the read that has been trimmed.
+            Sequence reads will often align to more than one reference genome. MGA assigns
+            reads to the genome with the fewest mismatches. If a read aligns with the same
+            smallest number of mismatches to multiple genomes, an expected genome will be
+            selected preferentially. Tie-breaks are decided by ranking genomes based on how
+            many reads align with fewest mismatches to each.
 
             #### Reference Genomes
 
             Sequences were aligned to the following reference genomes ({number_of_genomes} in total).
 
         """
+
+        # See https://stackoverflow.com/questions/2440692/formatting-floats-without-trailing-zeros
 
         for genome in genomes:
             help += f"* {genome}\n"
