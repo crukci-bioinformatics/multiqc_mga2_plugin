@@ -47,3 +47,9 @@ plugin to the environment:
 ```
 python3 setup.py develop
 ```
+
+### Running MultiQC
+
+The MGA2 plugin will automatically be picked up by MultiQC if it is found in
+the environment's Python eggs.
+See [Running MultiQC](https://multiqc.info/docs/#running-multiqc).
