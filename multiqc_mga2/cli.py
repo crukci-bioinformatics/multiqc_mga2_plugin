@@ -19,3 +19,10 @@ mga2_sequencing_run = click.option('--mga-sequencing-run', 'mga2_sequencing_run'
 mga2_title = click.option("--mga-title", "mga2_title", type = str, show_default = False,
     help = "The title to apply to the MGA plots and tables."
 )
+
+# Sets which datasets to report on.
+# Sets config.kwargs['mga2_datasets']
+mga2_datasets = click.option("--mga-datasets", "mga2_datasets", type = str, show_default = False,
+    help = "The datasets to limit the MGA2 report to."
+)
+

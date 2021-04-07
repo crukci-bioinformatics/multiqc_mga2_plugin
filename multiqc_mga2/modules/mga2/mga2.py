@@ -7,6 +7,7 @@ import locale
 import logging
 import operator
 import os
+import re
 
 from collections import OrderedDict
 from functools import cmp_to_key
@@ -73,6 +74,12 @@ class MultiqcModule(BaseMultiqcModule):
         if title is not None: mga_data.title = title
 
         mga_data.from_sequencing = config.kwargs.get('mga2_sequencing_run', False)
+
+        datasets_arg = config.kwargs.get("mga2_datasets")
+        if datasets_arg is not None:
+            datasets_of_interest = map(str.strip, re.split(r"[ ,;:|/]+", datasets_arg))
+            datasets_of_interest = [ds for ds in datasets_of_interest if len(ds) > 0]
+            mga_data.filter_datasets(datasets_of_interest)
 
         self.create_mga_reports(mga_data)
 
@@ -376,7 +383,7 @@ class MultiqcModule(BaseMultiqcModule):
             The summary bar chart displays separate bars for each sample or dataset, one
             representing the genome alignments and the other adapter matches. The genome bar
             contains separate segments for each genome to which sampled reads have been
-            assigned and a segment for unmapped reads. The sizes of the segments are based 
+            assigned and a segment for unmapped reads. The sizes of the segments are based
             on the sampled reads and have been scaled for the total number of sequences. The
             transparency of each segment represents the error or mismatch rate for alignments
             to that genome with segments appearing in bolder colours if the error rate is low

@@ -118,6 +118,18 @@ class MGAData(object):
             self.max_sequence_count = max(self.max_sequence_count, dataset.summary.sequences)
         return self.max_sequence_count
 
+    def filter_datasets(self, datasets_of_interest):
+        '''
+        Remove datasets from those in this object's dictionary if their id is not
+        in the given collection of datasets required.
+
+        :param list datasets_of_interest: A list of dataset ids we are interested in
+        want to keep.
+        '''
+        if len(datasets_of_interest) > 0:
+            # https://www.geeksforgeeks.org/python-retain-list-elements-value-items/
+            self.datasets = { dsid : dataset for dsid, dataset in self.datasets.items() if dsid in datasets_of_interest }
+
 
 class MGADataset(object):
     '''

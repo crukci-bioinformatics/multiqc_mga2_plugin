@@ -32,7 +32,8 @@ setup(
         ],
         'multiqc.cli_options.v1': [
             'mga2_sequencing_run = multiqc_mga2.cli:mga2_sequencing_run',
-            'mga2_title = multiqc_mga2.cli:mga2_title'
+            'mga2_title = multiqc_mga2.cli:mga2_title',
+            'mga2_datasets = multiqc_mga2.cli:mga2_datasets',
         ],
         'multiqc.hooks.v1': [
             'execution_start = multiqc_mga2.custom_code:mga2_plugin_execution_start'
