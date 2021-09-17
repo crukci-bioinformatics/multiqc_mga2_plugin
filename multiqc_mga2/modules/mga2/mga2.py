@@ -359,7 +359,10 @@ class MultiqcModule(BaseMultiqcModule):
         species = set()
         for dataset in mga_data.datasets.values():
             for assignment in dataset.assignments.values():
-                species.add(assignment.species)
+                if assignment.species is None:
+                    species.add(f"{assignment.genome} (unlisted species)")
+                else:
+                    species.add(assignment.species)
 
         # See https://stackoverflow.com/questions/36139/how-to-sort-a-list-of-strings
         genomes = natsorted(species, key = cmp_to_key(locale.strcoll))
