@@ -361,6 +361,7 @@ class MultiqcModule(BaseMultiqcModule):
             for assignment in dataset.assignments.values():
                 if assignment.species is None:
                     species.add(f"{assignment.genome} (unlisted species)")
+                    log.warn(f"Genome {assignment.genome} has no species available. Is it missing from genomes.csv?")
                 else:
                     species.add(assignment.species)
 
