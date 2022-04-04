@@ -201,7 +201,7 @@ class MultiqcModule(BaseMultiqcModule):
             sequence_count = dataset_summary.sequences
             sampled_count = dataset_summary.sampled
 
-            sampled_to_sequenced = 0 if sequence_count == 0 else float(sequence_count) / float(sampled_count)
+            sampled_to_sequenced = 0 if sampled_count == 0 else float(sequence_count) / float(sampled_count)
 
             # Sort assignments first.
             sorted_assignments = sorted(mga_dataset.assignments.values())
