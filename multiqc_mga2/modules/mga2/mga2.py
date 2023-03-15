@@ -3,14 +3,12 @@
 """ MultiQC Multi Genome Alignment 2 module """
 
 import csv
-import locale
 import logging
 import operator
 import os
 import re
 
 from collections import OrderedDict
-from functools import cmp_to_key
 from natsort import natsorted
 from types import SimpleNamespace
 
