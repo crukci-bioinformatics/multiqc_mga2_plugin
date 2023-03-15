@@ -365,8 +365,7 @@ class MultiqcModule(BaseMultiqcModule):
                 else:
                     species.add(assignment.species)
 
-        # See https://stackoverflow.com/questions/36139/how-to-sort-a-list-of-strings
-        genomes = natsorted(species, key = cmp_to_key(locale.strcoll))
+        genomes = natsorted(species)
         number_of_genomes = len(genomes)
 
         help = f"""
