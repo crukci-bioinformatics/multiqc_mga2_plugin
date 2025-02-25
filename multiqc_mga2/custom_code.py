@@ -6,7 +6,7 @@ using the setuptools plugin hooks.
 """
 
 from __future__ import print_function
-from pkg_resources import get_distribution
+from importlib.metadata import version
 import logging
 
 from multiqc.utils import report, util_functions, config
@@ -15,13 +15,12 @@ from multiqc.utils import report, util_functions, config
 log = logging.getLogger('multiqc')
 
 # Save this plugin's version number (defined in setup.py) to the MultiQC config
-config.mga2_plugin_version = get_distribution("multiqc_mga2_plugin").version
+config.mga2_plugin_version = version("multiqc_mga2_plugin")
 
 
 # Add default config options for the things that are used in MultiQC_NGI
 def mga2_plugin_execution_start():
-    """ Code to execute after the config files and
-    command line flags have been parsedself.
+    """ Code to execute after the config files and command line flags have been .
 
     This setuptools hook is the earliest that will be able
     to use custom command line flags.

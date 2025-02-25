@@ -14,12 +14,12 @@ from types import SimpleNamespace
 
 from multiqc import config
 from multiqc.plots import bargraph, table
-from multiqc.modules.base_module import BaseMultiqcModule
+from multiqc.base_module import BaseMultiqcModule
 
 from .colour import Colour
 from .mga_structures import MGAData, MGADataset, MGAAssignment, MGADatasetSummary
 
-log = config.logger
+log = logging.getLogger(__name__)
 
 # See https://stackoverflow.com/a/16279578
 bar_colours = SimpleNamespace(**{
@@ -44,7 +44,7 @@ adapter_threshold_multiplier = 0.005
 
 # Based on https://github.com/MultiQC/example-plugin
 
-class MultiqcModule(BaseMultiqcModule):
+class MultiGenomeAlignmentModule(BaseMultiqcModule):
     '''
     A MultiQC module for MGA2.
     '''
@@ -54,14 +54,15 @@ class MultiqcModule(BaseMultiqcModule):
         Constructor. Causes the processing to run too.
         '''
 
-        super(MultiqcModule, self).__init__(
+        super(MultiGenomeAlignmentModule, self).__init__(
             name = 'Multi Genome Alignment',
-            target = "MGA",
-            anchor = 'mga',
+            anchor = 'mga2',
             href = "https://github.com/crukci-bioinformatics/MGA2",
             info = """(multi-genome alignment) is a quality control tool for high-throughput sequence data
                    developed by the Bioinformatics Core at the Cancer Research UK Cambridge Institute."""
         )
+
+        log.error("At least MGA2 is running!")
 
         # Add to self.css to be included in template
         self.css = { 'assets/css/multiqc_mga2.css' : os.path.join(os.path.dirname(__file__), 'assets', 'css', 'multiqc_mga2.css') }
