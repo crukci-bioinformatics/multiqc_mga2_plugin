@@ -62,8 +62,6 @@ class MultiGenomeAlignmentModule(BaseMultiqcModule):
                    developed by the Bioinformatics Core at the Cancer Research UK Cambridge Institute."""
         )
 
-        log.error("At least MGA2 is running!")
-
         # Add to self.css to be included in template
         self.css = { 'assets/css/multiqc_mga2.css' : os.path.join(os.path.dirname(__file__), 'assets', 'css', 'multiqc_mga2.css') }
 
