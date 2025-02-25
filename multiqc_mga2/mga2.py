@@ -318,7 +318,6 @@ class MultiGenomeAlignmentModule(BaseMultiqcModule):
             'ymin': 0,
             'ymax': mga_data.max_sequence_count,
             'use_legend': False,
-            'tt_percentages': True,
             'hide_zero_cats': False
         }
 
@@ -556,10 +555,10 @@ class MultiGenomeAlignmentModule(BaseMultiqcModule):
         return {
             'namespace': 'mga',
             'id': f'mga_stats_table_{dataset_id}',
-            'table_title': dataset_id,
+            'title': dataset_id,
             'col1_header': 'Reference ID',
-            'no_beeswarm': True,
-            'sortRows': False
+            'no_violin': True,
+            'sort_rows': False
         }
 
 

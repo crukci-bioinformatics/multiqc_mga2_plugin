@@ -5,11 +5,10 @@ We can add any custom Python functions here and call them
 using the setuptools plugin hooks.
 """
 
-from __future__ import print_function
 from importlib.metadata import version
 import logging
 
-from multiqc.utils import report, util_functions, config
+from multiqc import config
 
 # Initialise the main MultiQC logger
 log = logging.getLogger('multiqc')
