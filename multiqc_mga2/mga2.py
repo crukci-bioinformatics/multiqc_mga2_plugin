@@ -316,7 +316,8 @@ class MultiGenomeAlignmentModule(BaseMultiqcModule):
             'ymin': 0,
             'ymax': mga_data.max_sequence_count,
             'use_legend': False,
-            'hide_zero_cats': False
+            'hide_zero_cats': False,
+            'tt_decimals': 0
         }
 
 
