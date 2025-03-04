@@ -14,12 +14,12 @@ from types import SimpleNamespace
 
 from multiqc import config
 from multiqc.plots import bargraph, table
-from multiqc.modules.base_module import BaseMultiqcModule
+from multiqc.base_module import BaseMultiqcModule
 
 from .colour import Colour
 from .mga_structures import MGAData, MGADataset, MGAAssignment, MGADatasetSummary
 
-log = config.logger
+log = logging.getLogger(__name__)
 
 # See https://stackoverflow.com/a/16279578
 bar_colours = SimpleNamespace(**{
@@ -44,7 +44,7 @@ adapter_threshold_multiplier = 0.005
 
 # Based on https://github.com/MultiQC/example-plugin
 
-class MultiqcModule(BaseMultiqcModule):
+class MultiGenomeAlignmentModule(BaseMultiqcModule):
     '''
     A MultiQC module for MGA2.
     '''
@@ -54,10 +54,9 @@ class MultiqcModule(BaseMultiqcModule):
         Constructor. Causes the processing to run too.
         '''
 
-        super(MultiqcModule, self).__init__(
+        super(MultiGenomeAlignmentModule, self).__init__(
             name = 'Multi Genome Alignment',
-            target = "MGA",
-            anchor = 'mga',
+            anchor = 'mga2',
             href = "https://github.com/crukci-bioinformatics/MGA2",
             info = """(multi-genome alignment) is a quality control tool for high-throughput sequence data
                    developed by the Bioinformatics Core at the Cancer Research UK Cambridge Institute."""
@@ -317,8 +316,8 @@ class MultiqcModule(BaseMultiqcModule):
             'ymin': 0,
             'ymax': mga_data.max_sequence_count,
             'use_legend': False,
-            'tt_percentages': True,
-            'hide_zero_cats': False
+            'hide_zero_cats': False,
+            'tt_decimals': 0
         }
 
 
@@ -555,10 +554,10 @@ class MultiqcModule(BaseMultiqcModule):
         return {
             'namespace': 'mga',
             'id': f'mga_stats_table_{dataset_id}',
-            'table_title': dataset_id,
+            'title': dataset_id,
             'col1_header': 'Reference ID',
-            'no_beeswarm': True,
-            'sortRows': False
+            'no_violin': True,
+            'sort_rows': False
         }
 
 
